@@ -1,3 +1,4 @@
 # cb2cm
-CamBam to CAMotic export plugin. 
-Window only for now.
+
+CamBam to CAMotics export plugin. 
+Windows only.
