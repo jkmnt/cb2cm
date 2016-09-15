@@ -96,7 +96,7 @@ namespace Cb2cm
 
             Cm_xml_generator gen = new Cm_xml_generator(doc);
             string cm_xml = gen.run();
-            string cm_xml_path = Path.ChangeExtension(gen.g_name, "xml");
+            string cm_xml_path = Path.ChangeExtension(gen.g_fullname, "xml");
 
             System.IO.StreamWriter file = new System.IO.StreamWriter(cm_xml_path);
             file.Write(cm_xml);

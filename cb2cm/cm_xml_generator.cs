@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.Generic;
 using System.Xml.Linq;
 
@@ -101,11 +102,19 @@ namespace Cb2cm
             return output;
         }
 
+        public string g_fullname
+        {
+            get
+            {
+                return FileUtils.GetFullPath(doc.MachiningOptions.CADFile, doc.MachiningOptions.OutFile);
+            }
+        }
+
         public string g_name
         {
             get
-            { 
-                return FileUtils.GetFullPath(doc.MachiningOptions.CADFile, doc.MachiningOptions.OutFile);
+            {
+                return Path.GetFileName(g_fullname);
             }
         }
 

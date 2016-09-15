@@ -27,7 +27,7 @@ namespace Cb2cm
             Process[] processes = Process.GetProcessesByName("camotics");
             if (processes.Length > 0)
                 return processes[0].MainModule.FileName;
-            return null;
+            return "";
         }
 
         static void close()
