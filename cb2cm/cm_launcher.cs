@@ -56,7 +56,7 @@ namespace Cb2cm
                 close();
             try
             {
-                Process.Start(path, project);
+                Process.Start(path, "\"" + project + "\"");
             }
             catch (Exception e)
             {
