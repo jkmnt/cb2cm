@@ -2,8 +2,6 @@
 using System.IO;
 using System.Xml.Serialization;
 
-using CamBam;
-
 namespace Cb2cm
 {
     public class Cb2cm_config
@@ -30,34 +28,32 @@ namespace Cb2cm
 
         public bool regen_gfile_before_post{ get; set; }
 
+        public bool skip_disabled_mops { get; set; }
+
         public Cb2cm_config()
-        {
+        {            
             sim_resolution = Sim_resolutions.MEDIUM;
             default_tool_length = 10;
             camotics_path = "";
             should_launch_camotics = true;
             only_single_instance = true;
             regen_gfile_before_post = true;
+            skip_disabled_mops = true;
         }
 
-        static string get_config_path()
-        {
-            return CamBam.FileUtils.GetFullPath(CamBamConfig.Defaults.SystemPath, "cb2cm.config");            
-        }
-
-        public static bool save()
+        public static bool save(string path)
         {
             if (defaults == null) return false;
 
             try
             {
-                FileInfo fi = new FileInfo(get_config_path());
+                FileInfo fi = new FileInfo(path);
                 if (!fi.Directory.Exists)                
                     fi.Directory.Create();                
 
                 XmlSerializer serializer = new XmlSerializer(defaults.GetType());
 
-                using (TextWriter writer = new StreamWriter(get_config_path(), false))
+                using (TextWriter writer = new StreamWriter(path, false))
                 {
                     serializer.Serialize(writer, defaults);
                     writer.Close();
@@ -65,23 +61,23 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                ThisApplication.HandleException(e);
+                Logger.err("Failed to save config file : {0}\r\n{1}", path, e.Message);                
                 return false;
             }
             return true;
         }
 
-        public static void load()
+        public static bool load(string path)
         {
             Cb2cm_config cfg = null;
 
             try
             {
-                if (File.Exists(get_config_path()))
+                if (File.Exists(path))
                 {
                     XmlSerializer serializer = new XmlSerializer(typeof(Cb2cm_config));
 
-                    using (TextReader reader = new StreamReader(get_config_path()))
+                    using (TextReader reader = new StreamReader(path))
                     {
                         cfg = (Cb2cm_config)(serializer.Deserialize(reader));
 
@@ -91,13 +87,17 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                ThisApplication.MsgBox(String.Format("Error reading config file : {0}\r\n{1}", get_config_path(), e.Message));
+                Logger.err("Failed to read config file : {0}\r\n{1}", path, e.Message);
             }
 
             if (cfg == null)
-                cfg = new Cb2cm_config();
-
+            {
+                defaults = new Cb2cm_config();
+                return false;
+            }
+            
             defaults = cfg;
+            return true;
         }
     }
 }

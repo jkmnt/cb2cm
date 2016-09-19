@@ -1,8 +1,6 @@
 using System;
 using System.Diagnostics;
 
-using CamBam;
-
 namespace Cb2cm
 {
     class Cm_launcher
@@ -40,7 +38,7 @@ namespace Cb2cm
 
                 if (!proc.HasExited)
                 {
-                    ThisApplication.AddLogMessage("Waiting for CAMotics to exit");
+                    Logger.log("Waiting for CAMotics to exit");
                     do
                     {
                         System.Threading.Thread.Sleep(1);
@@ -60,7 +58,7 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                ThisApplication.MsgBox(String.Format("Failed to run CAMotics. Set location in cb2cm.config file or start CAMotics manually before CamBam to autodetect it. \r\n\n{0}", e.Message));
+                Logger.msg("Failed to run CAMotics. Set location in cb2cm.config file or start CAMotics manually before CamBam to autodetect it. \r\n\n{0}", e.Message);
             }
         }
     }
