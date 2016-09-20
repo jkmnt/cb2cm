@@ -38,11 +38,10 @@ namespace Cb2cm
 
                 if (!proc.HasExited)
                 {
-                    Logger.log("Waiting for CAMotics to exit");
+                    Host.log("Waiting for CAMotics to exit");
                     do
                     {
-                        System.Threading.Thread.Sleep(1);
-                        System.Windows.Forms.Application.DoEvents();
+                        Host.sleep(1);
                     } while (!proc.HasExited);
                 }
             }
@@ -58,7 +57,7 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                Logger.msg("Failed to run CAMotics. Set location in cb2cm.config file or start CAMotics manually before CamBam to autodetect it. \r\n\n{0}", e.Message);
+                Host.msg("Failed to run CAMotics. Set location in cb2cm.config file or start CAMotics manually before CamBam to autodetect it. \r\n\n{0}", e.Message);
             }
         }
     }

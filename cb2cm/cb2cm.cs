@@ -10,7 +10,7 @@ using CamBam.CAD;
 
 namespace Cb2cm
 {
-    public class Logger
+    public class Host
     {
         static public void log(string s, params object[] args)
         {
@@ -28,6 +28,11 @@ namespace Cb2cm
         {
             ThisApplication.MsgBox(String.Format(s, args));
         }        
+        static public void sleep(int ms)
+        {
+            System.Threading.Thread.Sleep(ms);
+            System.Windows.Forms.Application.DoEvents();
+        }
     }
 
     public class Cb2cm_plugin
@@ -64,7 +69,7 @@ namespace Cb2cm
 
             if (doc.Filename == null)
             {
-                Logger.msg("Please save the project first");
+                Host.msg("Please save the project first");
                 return;
             }
 
@@ -73,8 +78,7 @@ namespace Cb2cm
                 CAMUtils.GenerateGCodeOutput(view);
                 do
                 {
-                    System.Threading.Thread.Sleep(1);
-                    System.Windows.Forms.Application.DoEvents();
+                    Host.sleep(1);
                 } while (view.IsThinking);
             }
 
@@ -85,7 +89,7 @@ namespace Cb2cm
             System.IO.StreamWriter file = new System.IO.StreamWriter(cm_xml_path);
             file.Write(cm_xml);
             file.Close();
-            Logger.log("Created CAMotics project {0}", cm_xml_path);
+            Host.log("Created CAMotics project {0}", cm_xml_path);
 
             if (!Cb2cm_config.defaults.should_launch_camotics)
                 return;

@@ -97,26 +97,21 @@ namespace Cb2cm
             output.desc = tool.DisplayName;
             output.index = tool.Index;
             output.are_units_imperial = are_tool_units_imperial(tool);
-            output.shape = map_tool_shape(tool);
+            output.shape = map_tool_shape(tool);        
+            output.diameter = tool.Diameter;
 
             if (tool.ToolProfile != ToolProfiles.VCutter)
-            {
-                output.diameter= tool.Diameter;
+            {                
                 output.length = tool.FluteLength != 0 ? tool.FluteLength : Cb2cm_config.defaults.default_tool_length;
             }
             else
-            {
-                output.diameter = tool.ShankDiameter;
-                // supply a common 1/8" shank for the undefined                
-                if (output.diameter <= 0)
-                    output.diameter = output.are_units_imperial ? 0.125 : 3.175;
-
+            {                
                 double angle = tool.VeeAngle;
 
                 if (tool.VeeAngle <= 0)
                 {
                     angle = 45.0;
-                    Logger.warn("Conical tool {0} has no Vee angle specified. Defaulting to the 45 degrees", tool.Index);
+                    Host.warn("Conical tool {0} has no Vee angle specified. Defaulting to the 45 degrees", tool.Index);
                 }
                 output.length = output.diameter / 2 / Math.Tan(Math.PI * angle / 2 / 180);                
             }                       
@@ -212,18 +207,14 @@ namespace Cb2cm
                     Tool tool = get_tool_from_mop(mop);                    
                     if (tool == null)
                     {
-                        Logger.warn("{0}/{1} has no library tool defined. Sim results may be wrong", part.Name, mop.Name);
+                        Host.warn("{0}/{1} has no library tool defined. Sim results may be wrong", part.Name, mop.Name);
                     }
                     else
                     {
                         // warn if tool diameter is overriden in mop
                         // XXX: floating point compare may be inaccurate, but in this case value should be a copy, not a calculated one.
-                        if ((double)mop.ToolDiameter.GetValue() != tool.diameter)
-                        {
-                            // XXX: diameter for conicals is a cut width, not an actual diameter. no need to rise the alarm.
-                            if (mop.CurrentTool.ToolProfile != ToolProfiles.VCutter)
-                                Logger.warn("{0}/{1} has tool diameter overridden. Sim results may be wrong", part.Name, mop.Name);
-                        }
+                        if ((double)mop.ToolDiameter.GetValue() != tool.diameter)                        
+                            Host.warn("{0}/{1} has tool diameter overridden. Sim results may be wrong", part.Name, mop.Name);                        
                         // NOTE: tool will overwrite previous tool with same index
                         tools[tool.index] = tool;
                     }

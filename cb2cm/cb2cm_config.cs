@@ -61,7 +61,7 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                Logger.err("Failed to save config file : {0}\r\n{1}", path, e.Message);                
+                Host.err("Failed to save config file : {0}\r\n{1}", path, e.Message);                
                 return false;
             }
             return true;
@@ -87,7 +87,7 @@ namespace Cb2cm
             }
             catch (Exception e)
             {
-                Logger.err("Failed to read config file : {0}\r\n{1}", path, e.Message);
+                Host.err("Failed to read config file : {0}\r\n{1}", path, e.Message);
             }
 
             if (cfg == null)
