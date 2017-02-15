@@ -19,7 +19,7 @@ namespace Cb2cm
             public Point3F max;
         }
 
-        class Tool
+        struct Tool
         {
             public double diameter;
             public string desc;
@@ -29,11 +29,11 @@ namespace Cb2cm
             public string shape;
         };
 
-        CADFile doc;        
+        CADFile doc;
 
         public Cm_xml_generator(CADFile cadfile)
         {
-            doc = cadfile;            
+            doc = cadfile;
         }
 
         double mm_scale
@@ -52,14 +52,14 @@ namespace Cb2cm
         bool is_cad_imperial
         {
             get
-            {                
+            {
                 return doc.DrawingUnits == Units.Inches || doc.DrawingUnits == Units.Thousandths;
             }
         }
 
         Point3F unpack_p3f(Point3F input)
-        {            
-            return new Point3F(input.X * mm_scale, input.Y * mm_scale, input.Z * mm_scale);            
+        {
+            return new Point3F(input.X * mm_scale, input.Y * mm_scale, input.Z * mm_scale);
         }
 
         Stock get_stock(StockDef stock)
@@ -70,42 +70,39 @@ namespace Cb2cm
             return output;
         }
 
-        bool are_tool_units_imperial(ToolDefinition tool)
+        bool is_toollib_imperial(string libname)
         {
-            string name = tool.ToolLibrary.Name;
-            if (name.EndsWith("-mm")) return false;
-            if (name.EndsWith("-in")) return true;
+            if (libname != null)
+            {
+                if (libname.EndsWith("-mm")) return false;
+                if (libname.EndsWith("-in")) return true;
+            }
             return is_cad_imperial;
         }
 
-        string map_tool_shape(ToolDefinition tool)
+        string map_tool_shape(ToolProfiles profile)
         {
-            if (tool.ToolProfile == ToolProfiles.VCutter) return "CONICAL";
-            if (tool.ToolProfile == ToolProfiles.BallNose || tool.ToolProfile == ToolProfiles.BullNose) return "BALLNOSE";
+            if (profile == ToolProfiles.VCutter) return "CONICAL";
+            if (profile == ToolProfiles.BallNose || profile == ToolProfiles.BullNose) return "BALLNOSE";
             return "CYLINDRICAL";
         }
 
-        Tool get_tool_from_mop(MachineOp mop)
+        Tool get_library_tool(ToolDefinition tool)
         {
-            ToolDefinition tool = mop.CurrentTool;
-
-            if (tool == null)
-                return null;            
-
             Tool output = new Tool();
 
             output.desc = tool.DisplayName;
             output.index = tool.Index;
-            output.are_units_imperial = are_tool_units_imperial(tool);
-            output.shape = map_tool_shape(tool);        
+            output.are_units_imperial = is_toollib_imperial(tool.ToolLibrary.Name);
+            output.shape = map_tool_shape(tool.ToolProfile);
             output.diameter = tool.Diameter;
 
             if (tool.ToolProfile != ToolProfiles.VCutter)
-            {                
+            {
                 output.length = tool.FluteLength != 0 ? tool.FluteLength : Cb2cm_config.defaults.default_tool_length;
             }
             else
-            {                
+            {
                 double angle = tool.VeeAngle;
 
                 if (tool.VeeAngle <= 0)
@@ -113,10 +110,22 @@ namespace Cb2cm
                     angle = 45.0;
                     Host.warn("Conical tool {0} has no Vee angle specified. Defaulting to the 45 degrees", tool.Index);
                 }
-                output.length = output.diameter / 2 / Math.Tan(Math.PI * angle / 2 / 180);                
-            }                       
-            
+                output.length = output.diameter / 2 / Math.Tan(Math.PI * angle / 2 / 180);
+            }
+
             return output;
+        }
+
+        Tool get_mop_tool(MachineOp mop)
+        {
+            Tool tool = new Tool();
+            tool.index = mop.ToolNumber.Cached;
+            tool.diameter = mop.ToolDiameter.Cached;
+            tool.length = Cb2cm_config.defaults.default_tool_length;
+            tool.shape = map_tool_shape(mop.ToolProfile.Cached);
+            tool.are_units_imperial = is_toollib_imperial(mop.Part.ToolLibrary);
+            tool.desc = String.Format("MOP-specified tool {0}{1}", tool.diameter, tool.are_units_imperial ? "in" : "mm");
+            return tool;
         }
 
         public string g_fullname
@@ -136,7 +145,7 @@ namespace Cb2cm
         }
 
         XElement gen_cm_project(Stock stock, Dictionary<int, Tool> tools)
-        {            
+        {
             XElement root = new XElement("camotics");
             root.Add(new XElement("nc-files", g_name.Replace(" ", "%20")));
             root.Add(new XElement("resolution-mode", new XAttribute("v", Cb2cm_config.defaults.sim_resolution)));
@@ -172,7 +181,7 @@ namespace Cb2cm
         }
 
         public string run()
-        {                    
+        {
             MachiningOptions mopts = doc.MachiningOptions;
             CAMParts parts = doc.Parts;
 
@@ -188,7 +197,7 @@ namespace Cb2cm
                 stocks.Add(get_stock(mopts.Stock));
 
             Stock stock = stocks.Count > 0 ? stocks[0] : null;
-            
+
             Dictionary<int, Tool> tools = new Dictionary<int, Tool>();
 
             foreach (CAMPart part in parts)
@@ -204,24 +213,41 @@ namespace Cb2cm
                     if ((!mop.Enabled) && Cb2cm_config.defaults.skip_disabled_mops)
                         continue;
 
-                    Tool tool = get_tool_from_mop(mop);                    
-                    if (tool == null)
+                    if (mop.ToolNumber.Cached == 0)
                     {
-                        Host.warn("{0}/{1} has no library tool defined. Sim results may be wrong", part.Name, mop.Name);
+                        Host.warn("{0}/{1} has no tool number defined. Sim results may be wrong", part.Name, mop.Name);
                     }
                     else
                     {
-                        // warn if tool diameter is overriden in mop
-                        // XXX: floating point compare may be inaccurate, but in this case value should be a copy, not a calculated one.
-                        if ((double)mop.ToolDiameter.GetValue() != tool.diameter)                        
-                            Host.warn("{0}/{1} has tool diameter overridden. Sim results may be wrong", part.Name, mop.Name);                        
-                        // NOTE: tool will overwrite previous tool with same index
-                        tools[tool.index] = tool;
+                        ToolDefinition libtool = mop.CurrentTool;
+
+                        Tool tool;
+
+                        if (libtool == null || mop.ToolDiameter.Cached != libtool.Diameter|| mop.ToolProfile.Cached != libtool.ToolProfile)
+                        {
+                            tool = get_mop_tool(mop);
+                        }
+                        else
+                        {
+                            tool = get_library_tool(libtool);
+                        }
+
+                        if (tool.diameter == 0)
+                            Host.warn("{0}/{1} has zero diameter tool {2})", part.Name, mop.Name, mop.ToolNumber);
+
+                        if (tools.ContainsKey(tool.index) && (! tool.Equals(tools[tool.index])))
+                        {
+                            Host.warn("{0}/{1} has conflicting specification for tool {2}", part.Name, mop.Name, tool.index);
+                        }
+                        else
+                        {
+                            tools[tool.index] = tool;
+                        }
                     }
                 }
             }
 
-            return gen_cm_project(stock, tools).ToString();            
+            return gen_cm_project(stock, tools).ToString();
         }
     }
 }
