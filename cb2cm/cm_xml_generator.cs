@@ -213,36 +213,39 @@ namespace Cb2cm
                     if ((!mop.Enabled) && Cb2cm_config.defaults.skip_disabled_mops)
                         continue;
 
+                    ToolDefinition libtool = null;
+
                     if (mop.ToolNumber.Cached == 0)
                     {
                         Host.warn("{0}/{1} has no tool number defined. Sim results may be wrong", part.Name, mop.Name);
                     }
                     else
                     {
-                        ToolDefinition libtool = mop.CurrentTool;
+                        libtool = mop.CurrentTool;
+                    }
 
-                        Tool tool;
 
-                        if (libtool == null || mop.ToolDiameter.Cached != libtool.Diameter|| mop.ToolProfile.Cached != libtool.ToolProfile)
-                        {
-                            tool = get_mop_tool(mop);
-                        }
-                        else
-                        {
-                            tool = get_library_tool(libtool);
-                        }
+                    Tool tool;
 
-                        if (tool.diameter == 0)
-                            Host.warn("{0}/{1} has zero diameter tool {2})", part.Name, mop.Name, mop.ToolNumber);
+                    if (libtool == null || mop.ToolDiameter.Cached != libtool.Diameter|| mop.ToolProfile.Cached != libtool.ToolProfile)
+                    {
+                        tool = get_mop_tool(mop);
+                    }
+                    else
+                    {
+                        tool = get_library_tool(libtool);
+                    }
 
-                        if (tools.ContainsKey(tool.index) && (! tool.Equals(tools[tool.index])))
-                        {
-                            Host.warn("{0}/{1} has conflicting specification for tool {2}", part.Name, mop.Name, tool.index);
-                        }
-                        else
-                        {
-                            tools[tool.index] = tool;
-                        }
+                    if (tool.diameter == 0)
+                        Host.warn("{0}/{1} has zero diameter tool {2})", part.Name, mop.Name, mop.ToolNumber);
+
+                    if (tools.ContainsKey(tool.index) && (! tool.Equals(tools[tool.index])))
+                    {
+                        Host.warn("{0}/{1} has conflicting specification for tool {2}", part.Name, mop.Name, tool.index);
+                    }
+                    else
+                    {
+                        tools[tool.index] = tool;
                     }
                 }
             }
